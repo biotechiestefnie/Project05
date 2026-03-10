@@ -2,6 +2,8 @@ import numpy as np
 from pprint import pprint
 from numba import njit
 from numba.typed import List as JitList
+import time
+import sys
 
 
 
@@ -88,7 +90,7 @@ def fill_matrix_fast(a, b, nw=1):
             A[0, j] = j * -1
         s = 1
     else:
-        s = 0
+        s = 1
 
     for i in range(s, x):
         for j in range(s, y):
@@ -162,8 +164,6 @@ def traceback(a, b, i, j, A, B=None, toprint=False):
                 dct["seq_a"].append(a[i-1])
                 dct["seq_b"].append(b[j-1])
             output.extend(next)
-    if toprint:
-        pprint(output)
 
     if len(output) > 0:
         return output
@@ -313,7 +313,8 @@ def align_sequences(seq_a, seq_b, nw=1):
     returns: decoded sequences that have been aligned
     '''
 
-    seq_a, seq_b = encode_seq(seq_a), encode_seq(seq_b)
+    if type(seq_a) == str:
+        seq_a, seq_b = encode_seq(seq_a), encode_seq(seq_b)
 
     A = fill_matrix_fast(seq_a, seq_b, nw)
     if not nw:
@@ -358,7 +359,6 @@ if __name__ == "__main__":
     seq_b = "ATGGCTAGCTAGCTAGCTAGCTACGATCGATCGATCGATCGNNNATCGATCGATCGTAGCTAGCTAGCTAGCTACGATCGATCGATCGATCG"
     seq_a = "ATGGCTAGCTAGCTAGCTAGCGATCGATCGATCGATCGNNNATCGATCGATCGTAGCTAGCTAGCTAGCTACGATCGATCGATCGATCG"
 
-    import time
     print("----------TESTTEST-----------")
 
     A = fill_matrix_fast(seq_a, seq_b)
