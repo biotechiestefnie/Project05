@@ -1,5 +1,3 @@
-second_code_runthrough.py
-
 # Import package
 import numpy as np  # array for dp
 
