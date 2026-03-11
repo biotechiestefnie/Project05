@@ -27,7 +27,7 @@ Sequence alignment can either be conducted locally or globally to find an optima
 
 Because dynamic programming has a polynomial runtime at best, optimization is important for increasingly complicated alignments or for virtually anything practical. We pondered this critically while constructing our code, and decided to implement different versions to test the impact of optimization in dynamic programming.  
 
-Please see demonstration.ipynb for the implementation of our code. We did three separate implementations after discussing the concept of the algorithm; these are separate scripts in the folder: Implementation 1, Implementation 2, and Implementation 3. The details of each implementation and a reflection detailing our progression from one code to the next is included in the jupyter notebook entitled, "Reflections". 
+Please see demonstration.ipynb for the executions and comparisons of our codes. We did three separate implementations after discussing the concept of the algorithm; these are separate scripts in the folder: Implementation 1, Implementation 2, and Implementation 3. The details of each implementation and a reflection detailing our progression from one code to the next is included in the jupyter notebook, demonstrations, under the "Reflections" section.
 
 ### Pseudocode
 
@@ -65,15 +65,31 @@ function traceback
 ```
 
 ### Successes
-Three unique implementations of the algorithm.
+Including three unique implementations of the algorithm that illustrates our progression and evolution from simple to complex and from toy to scale was a strategic approach we agreed upon in light of the scaling issues from the previous weeks. Once we had clear sight of how the algorithm should be implemented, we still had time left due to the extended timeframe, and we wanted to see what a scaled implementation would look like. While admittedly, it is far beyond the level of coding most students are at, we felt it would be a good learning tool to look back on.
 
 ### Struggles
-Squashing bugs; comparing output
+In the very beginning, we incorrectly implemented the Needleman-Wunsch algorithm, which is for global, not local, alignment. Initialization is very different, as NW progressively penalizes beginning alignment down the sequence the further you go. As such, initialization begins at 0,0 for the first bases, but then goes down by negatives- in our case with a gap penalty of 1- -1, -2, -3, -4, -5, ... for both the initialization row and column. Additionally, NW traceback begins at the bottom right corner, whereas Smith-Waterman takes the global maximum as the start of the alignment. This caused us confusion at first, and we had to identify these differences to understand how each is used. We have included examples of what the matrices would look like for both global and local approaches in our Jupyter notebook for illustration purposes. 
+
+We also struggled in deciding how we should track the traceback. Initially, we thought that the secondary matrix would be unnecessarily taxing on memory to impose, which is why we tried Implementation 1 with a helper function to trace the score directions. Upon testing, however, we realized very quickly that this introduced a bias and was not yielding tracebacks that matched what we were predicting from the score matrix. Additionally, learning how to implement a deterministic tie breaking mechanism was a challenge for us. By breaking ties in preferential order-> diag > up > left, we realized immediately that we were not getting gaps, because the traceback would always choose diagonal. 
 
 
 ### Reflections
 
 Eric Arnold: with the recursive approach, it was good practice to debug the whole thing to see where it was going wrong. For instance, the numerical precision for my score matrix was woefully inadequate (int-8) and only reared its head when trying to align longer sequences and comparing to the other implementations of the function. It was also good practice transferring the array methods into numpy. While pure arrays would be optimal, the function ultimately makes use of a Jit dynamic array (JitList) to store results. The recursive approach only makes sense if you want to get every possible aligned sequence, but it breaks catastrophically when input sequences become complex an can have multiple gaps in different places to get the optimal score, such as with homologous or repeated sections, as discovered in testing.
 
+Stefanie Moreno:
+I had a great time working with Thu Thu and Eric on this project. Because I had taken Genomics, I came in with a solid understanding of the biological motivations behind Smith–Waterman, and it was rewarding to be able to share that with the group. What surprised me, though, was how difficult it was at first to translate the conceptual algorithm I understood on paper into clean, executable code. We actually ran through the concepts multiple times by hand before we even started with our pseudocode, so that we could all understand the steps we needed to implement. The template gave us just enough scaffolding to get started, but we still had to make a lot of decisions about how to structure the scoring logic, how to represent traceback, and how to keep the implementation biologically realistic. Working through those decisions together was one of the most valuable parts of the assignment.
+
+One of the most interesting parts of the project was comparing the three implementations. Implementation 1 was simple and easy to read, but it also revealed how subtle mistakes in tie‑breaking or traceback logic can completely distort an alignment. Seeing how diagonal bias or incorrect termination rules produced false motifs or extended alignments into noise helped me appreciate how fragile local alignment can be when the traceback logic isn’t grounded in the score matrix. Implementation 2 fixed those issues and became the first version that behaved like a true Smith–Waterman algorithm. It was deterministic, biologically realistic, and passed all our tests.
+
+At the same time, working with Implementation 2 made its limitations very clear. Even though it was correct, it was still pure Python, and the performance bottlenecks became obvious as soon as we tried longer sequences. Every DP cell update had to go through the Python interpreter, and traceback relied on Python recursion and list operations. It worked beautifully for short sequences, but it simply couldn’t scale. That limitation helped me understand why real bioinformatics tools rarely rely on pure Python for dynamic programming—they need compiled execution to take advantage of hardware‑level optimizations that Python can’t access.
+
+Implementation 3 was our attempt to bridge that gap. Admittedly, this was Eric's implementation, and I am not nearly as advanced in my coding skills. It was fascinating to see how much performance Eric's version could unlock by switching to numeric encoding and using Numba to compile the DP loop and traceback into machine code. Suddenly, the algorithm could handle long sequences and large matrices that would have been impossible in Implementation 2. But the trade‑off was equally clear: the code became harder to read, harder to debug, and much less flexible. Adding new scoring schemes or inspecting intermediate states was no longer straightforward. Running all three implementations side by side made those trade‑offs very concrete. There were even cases where Implementation 2 produced more reliable results than Implementation 3, simply because the compiled version was so much harder to inspect and validate.
+
+Overall, the progression from Implementation 1 to 2 to 3 taught me a lot about the balance between correctness, clarity, and performance. Implementation 1 showed how easy it is to get the logic wrong. Implementation 2 showed how to get the biology right. Implementation 3 showed what it takes to make an algorithm scale to real‑world data. Working through all three gave me a much deeper appreciation for the design decisions behind real alignment tools, and it made the project feel both challenging and genuinely rewarding.
+
 ### GenAI appendix
-Used to generate some of the examples, troubleshoot syntax with numpy
+Claude used to generate some of the examples, troubleshoot syntax with numpy
+Prompts:
+Are there matrices in numpy? How would we go about representing a 2d matrix in numpy?
+Generate a series of local alignment tests we can run to evaluate the performance of a smith-waterman dynamic programming script. Include the two sequences to be compared, as well as what the correct alignment should be. Identify what each set of sequences is testing for.
