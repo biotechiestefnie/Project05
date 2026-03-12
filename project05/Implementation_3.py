@@ -21,40 +21,40 @@ b = "TNACAGATTACA"
 schema = {"match": 1, "mismatch": -1}
 
 
-def align_sequences(a, b, schema, seq_a, seq_b, i=0, j=0, cum_score=0, matrix=None):
+# def align_sequences(a, b, schema, seq_a, seq_b, i=0, j=0, cum_score=0, matrix=None):
 
-    '''
-    This is a standard recursive appraoch to the alignment problem. 
-    It brutally calls all possible paths using the same recursive structure as NW or SW.
-    Not very efficient and this implementation doesn't work properly. Not sure why.
-    Don't pay attention to this one.
-    '''
+#     '''
+#     This is a standard recursive appraoch to the alignment problem. 
+#     It brutally calls all possible paths using the same recursive structure as NW or SW.
+#     Not very efficient and this implementation doesn't work properly. Not sure why.
+#     Don't pay attention to this one.
+#     '''
 
-    if i == len(a) or j == len(b):                      #base case -- we hit the outer edge
-        print(seq_a, seq_b, cum_score)
-        return
+#     if i == len(a) or j == len(b):                      #base case -- we hit the outer edge
+#         print(seq_a, seq_b, cum_score)
+#         return
     
-    if matrix is None:                                  #init the matrix on first iteration
-        matrix = np.zeros(shape=(len(a), len(b)), dtype=np.float16)
+#     if matrix is None:                                  #init the matrix on first iteration
+#         matrix = np.zeros(shape=(len(a), len(b)), dtype=np.float16)
     
-    if a[i] == b[j]:
-        cum_score += schema["match"]
-        matrix[i, j] = cum_score
-        seq_a += a[i]
-        seq_b += b[j]
-        align_sequences(a, b, schema, seq_a, seq_b, i=i+1, j=j+1, cum_score=cum_score, matrix=matrix)
-    else:
-        cum_score += schema["mismatch"]
-        if cum_score < 0:
-            cum_score = 0
-        if cum_score < 0:
-            matrix[i, j] = 0
-        else:
-            matrix[i, j] = 0
-        gapped_seq_a = seq_a + "-"
-        gapped_seq_b = seq_b + "-"
-        align_sequences(a, b, schema, gapped_seq_a, seq_b, i=i, j=j+1, cum_score=cum_score, matrix=matrix)
-        align_sequences(a, b, schema, seq_a, gapped_seq_b, i=i+1, j=j, cum_score=cum_score, matrix=matrix)
+#     if a[i] == b[j]:
+#         cum_score += schema["match"]
+#         matrix[i, j] = cum_score
+#         seq_a += a[i]
+#         seq_b += b[j]
+#         align_sequences(a, b, schema, seq_a, seq_b, i=i+1, j=j+1, cum_score=cum_score, matrix=matrix)
+#     else:
+#         cum_score += schema["mismatch"]
+#         if cum_score < 0:
+#             cum_score = 0
+#         if cum_score < 0:
+#             matrix[i, j] = 0
+#         else:
+#             matrix[i, j] = 0
+#         gapped_seq_a = seq_a + "-"
+#         gapped_seq_b = seq_b + "-"
+#         align_sequences(a, b, schema, gapped_seq_a, seq_b, i=i, j=j+1, cum_score=cum_score, matrix=matrix)
+#         align_sequences(a, b, schema, seq_a, gapped_seq_b, i=i+1, j=j, cum_score=cum_score, matrix=matrix)
 
 @njit
 def fill_matrix_fast(a, b, nw=1):
