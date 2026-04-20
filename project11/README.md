@@ -12,21 +12,49 @@ What distinguishes our profile HMM from the regular HMM is A) the use of matrice
 ## Baum-Welch + fwd + bwd
 ```python
 
-class profile-HMM
-    N is the number of states (1 = Match, 2 = Insert, 3 = Delete)
-    L is the max sequence length
-    
-    let vocab be the 20 amino acids and "-" and "Z" and "Not" (nothing)   #assuming Z is the non-existing amino acid
-    let transitions be a stack of all transition probabilities          #dim: N x N x L
-    let emissions matrix be a stack of all emission probabilities       #dim: N x vocab x L
+Function: BuildProfileHMM(alignment) Description: Construct Match, Insert, and Delete states from a multiple sequence alignment.
+Pseudocode:
+1.	Determine the number of alignment columns.
 
-    #Emission matrix example:
-    M  0.1  0.23...
-    I  0.5, 0.25...
-    D  0    0...       1.0
-        P    R    Y    Not
+2.	For each column:
+        Count the number of gaps.
+    	If the proportion of gaps is less than 50%, mark this column as a Match column.
+    	Otherwise, mark this column as a Delete column.
 
-    let avg_len be the average length of the input sequences
+3.	Create the following states in order:
+        Begin state
+        For each column k:
+    	Match state Mk
+    	Insert state Ik
+    	Delete state Dk
+    	End state
+
+4.	Initialize emission distributions:
+        For each Match state Mk:
+    	    Count residues in column k (excluding gaps).
+    	    Convert counts to probabilities.
+    	For each Insert state Ik:
+        	Initialize with background frequencies or uniform distribution.
+    	For each Delete state Dk:
+        	No emissions.
+
+5.	Initialize transition structure:
+    	From Begin: transitions to M1 and D1.
+    	For each k from 1 to K−1:
+        	Mk → Mk+1, Ik, Dk+1
+        	Ik → Ik, Mk+1
+        	Dk → Dk+1, Mk+1
+    	From final states Mk, Ik, Dk: transitions to End.
+
+6.	Initialize transition probabilities:
+    	For Match and Insert states:
+            estimate from alignment paths.
+    	For Delete states:
+            set all outgoing transitions to 1 (deterministic).
+
+7.	Return the full Profile HMM structure.
+<img width="468" height="536" alt="image" src="https://github.com/user-attachments/assets/1c84adbe-70d8-4278-b9c7-1abf6d25549f" />
+
 
 
     function _forward_table
