@@ -79,9 +79,9 @@ class profile-HMM
                             backward [index + 1] /
                             p_seq #to normalize
 
-            normalize accumulations by the sum of accumulated probabilities
-            check convergence
-            reassign matrices for next iteration
+        normalize accumulations by the sum of accumulated probabilities
+        check convergence
+        reassign matrices for next iteration
             
                             
 
