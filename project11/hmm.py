@@ -7,6 +7,8 @@ from scipy.special import logsumexp
 from copy import deepcopy
 import matplotlib.pyplot as plt
 from tabulate import tabulate
+from collections import Counter
+from scipy.stats import entropy
 
 class HMMModel:
     """
@@ -158,6 +160,96 @@ class HMMModel:
         initial_prob = np.random.uniform(0, 1)
         self.emissions = [np.log(init_emission_layer()) for i in range(self.avg_len)]
         self.transitions = [np.log(np.array([initial_prob, 1 - initial_prob, 0.0]))] + [np.log(init_transition_layer()) for i in range(self.avg_len)]
+    
+
+    def init_msa(self, sequences: list, vocab="ACDGEFHIKLMNOPQRSTVW-", pseudocount=0.1):
+
+        sequence_matrix = np.vstack([np.array(list(seq), dtype=object) for seq in sequences])
+
+        self.avg_len = sequence_matrix.shape[1] # placeholder; assumes identical length sequences
+        self.vocab = list(vocab)
+
+        self.emissions = [np.zeros((3, len(self.vocab)), dtype=np.float64) for matrix in range(self.avg_len)]
+        self.transitions = [np.zeros((3, 3), dtype=np.float64) for matrix in range(self.avg_len)]
+
+        emission_to_idx = {k: i for i, k in enumerate(self.vocab)}
+        state_to_idx = {"M": 0, "I": 1, "D": 2}
+
+
+        """estimate transitions first since we need those to index the emissions matrices"""
+        # get column consensuses: assign match iff majority emissions != "-"
+
+        consensus_states = []
+        for i in range(sequence_matrix.shape[1]):
+            values = Counter(sequence_matrix[:, i])
+            gap_count = values.get("-")
+            gaps = gap_count if gap_count is not None else 0
+            total = sum(values.values()) - gaps
+            if gaps >= total:
+                consensus_states.append("I")
+            else:
+                consensus_states.append("M")
+                
+        """now iterate through all sequences in the emisison matrix and assign states based on what we see"""
+
+        '''
+        consensus_state   observed_emission     
+        match     +       residue            =  M
+        match     +       gap                =  D
+        insert    +       residue            =  I
+        insert    +       gap                =  skip
+        '''
+
+        prev_state = consensus_states[0]
+
+        for i in range(sequence_matrix.shape[0]):
+            for j in range(sequence_matrix.shape[1]):
+                emission = sequence_matrix[i, j]
+                if consensus_states[j] == "M":
+                    if emission == "-": # match + gap = D
+                        self.emissions[j][state_to_idx["D"], emission_to_idx[emission]] += 1
+                        self.transitions[j][state_to_idx[prev_state], state_to_idx["D"]] += 1
+                        prev_state = "D"
+                    else: # match + residue = M
+                        self.emissions[j][state_to_idx["M"], emission_to_idx[emission]] += 1
+                        self.transitions[j][state_to_idx[prev_state], state_to_idx["M"]] += 1
+                        prev_state = "M"
+                elif consensus_states[j] == "I":
+                    if emission != "-": # insert + residue = I
+                        self.emissions[j][state_to_idx["I"], emission_to_idx[emission]] += 1
+                        self.transitions[j][state_to_idx[prev_state], state_to_idx["I"]] += 1
+                        prev_state = "I"
+                #nothing happens if insert + gap
+        
+        em_mask = np.full(self.emissions[0].shape, True, dtype=bool)
+        em_mask[:-1, -1] = False
+        em_mask[2, :-1] = False
+
+        trans_mask = np.full(self.transitions[0].shape, True, dtype=bool)
+        trans_mask[1, 2] = False
+        trans_mask[2, 1] = False
+        
+        for i in range(self.avg_len): # had to row mask to avoid flattening
+            # emissions
+            for row in range(self.emissions[i].shape[0]):
+                row_mask = em_mask[row]
+                self.emissions[i][row, row_mask] += pseudocount
+                self.emissions[i][row, row_mask] /= self.emissions[i][row, row_mask].sum()
+
+            # transitions
+            for row in range(self.transitions[i].shape[0]):
+                row_mask = trans_mask[row]
+                self.transitions[i][row, row_mask] += pseudocount
+                self.transitions[i][row, row_mask] /= self.transitions[i][row, row_mask].sum()
+
+        #make initial probs M only because our first state must be a match
+        initial_probs = np.array([1, 0.0, 0.0])
+
+        # put into log space
+        self.transitions = [initial_probs] + [np.log(t) for t in self.transitions]
+        self.emissions = [np.log(em) for em in self.emissions]
+        
+            
 
 
     
@@ -783,13 +875,14 @@ if __name__ == "__main__":
 
     np.set_printoptions(linewidth=np.inf)
 
-    with open("data/phmm_test_sequences.fasta", "r", encoding="utf-8") as f:
+    with open("data/phmm_train_motif1.fasta", "r", encoding="utf-8") as f:
         lines = [line.strip() for line in f]
     seqs = [lines[i] for i in range(len(lines)) if i % 2 == 1]
     
     hmm = HMMModel()
-    hmm.random_initialise_phmm(sequence_length=[len(seq) for seq in seqs])
-    hmm.baum_welch_profile(seqs=seqs, convergence_threshold= 0, max_iter=10)
+    # hmm.random_initialise_phmm(sequence_length=[len(seq) for seq in seqs])
+    hmm.init_msa(seqs)
+    # hmm.baum_welch_profile(seqs=seqs, convergence_threshold= 0, max_iter=10)
 
 
     test_seq = seqs[2]
