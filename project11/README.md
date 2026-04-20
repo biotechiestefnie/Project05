@@ -25,28 +25,72 @@ class profile-HMM
     D  0    0...       1.0
         P    R    Y    Not
 
-    let avg_len be the average length of the input sequences # normailzing the column len of the matrix : avg len = sum of seq leq / total no of seqs
+    let avg_len be the average length of the input sequences
+
+Function: MSA alignment
+Description: Construct Match, Insert, and Delete states from a multiple sequence alignment.
+
+1.	Determine the number of alignment columns.
+
+2.	For each column:
+        Count the number of matches and gap.
+    	If the proportion of gaps is less than 50%, mark this column as a Match column.
+    	Otherwise, mark this column as an Insertion column.
+
+3.	Create the following states in order:
+        Begin state
+        For each column k:
+    	    Match state Mk
+    	    Insert state Ik
+    	    Delete state Dk
+    	End state
+
+4.	Initialize emission distributions:
+        For each Match state Mk:
+    	    Count residues in column k (excluding gaps).
+    	    Convert counts to probabilities.
+    	For each Insert state Ik:
+        	Initialize with background frequencies or uniform distribution.
+    	For each Delete state Dk:
+        	No emissions.
+
+5.	Initialize transition structure:
+    	From Begin: transitions to M1 and D1.
+    	For each k from 1 to K−1:
+        	Mk → Mk+1, Ik, Dk+1
+        	Ik → Ik, Mk+1
+        	Dk → Dk+1, Mk+1
+    	From final states Mk, Ik, Dk: transitions to End.
+
+6.	Initialize transition probabilities:
+    	For Match and Insert states:
+            estimate from alignment paths.
+    	For Delete states:
+            set all outgoing transitions to 1 (deterministic).
+
+7.	Return the full Profile HMM structure.
+
 
     function _forward_table
-        let seq be the input sequence # loop through one seq by one seq
-        let forward matrix be the unfilled matrix # initialize the matrix with 0s 
-        initialize probability from the initial prob array # get first character from obs seq 
+        let seq be the input sequence
+        let forward matrix be the unfilled matrix
+        initialize probability from the initial prob array
 
         for index in sequence
-            get emission column from emission matrix at index # get emmission prob for first char index 
+            get emission column from emission matrix at index
 
             for state in states:
-                previous scores is forward matrix [index - 1] 
+                previous scores is forward matrix [index - 1]
                 transitions is the matrix of transition probabilities at index
                 emission is the value in emission column at state
 
                 let scores be prev scores x transitions
-                forward matrix [state, index] = product(scores) * emission # calculation of forward table
+                forward matrix [state, index] = product(scores) * emission
 
     function _backward_table
-        let seq be the reversed input sequence sliced by avg_len # reversing sliced obs
-        let backward matrix be the unfilled matrix # initilaize the backward matrix with 0s
-        initialize first column of backward to be prob = 1 
+        let seq be the reversed input sequence sliced by avg_len
+        let backward matrix be the unfilled matrix
+        initialize first column of backward to be prob = 1
 
         for index in sequence
             get emission column from emission matrix at avg_len - index
@@ -59,28 +103,22 @@ class profile-HMM
 
     function baum_welch_profile
 
-        set iterations
-        set threshold for convergence
-        initialize accumulation matrices, num = avg_len 
-        
+        initialize accumulation matrices, num = avg_len
+        emission accumulation   (3 x 22 x avg_len)
+        transition accumulation (3 x 3 x avg_len)
+        initial accumulation
 
-        while not converged and less than set iterations do
-
-            initial accumulation
-            emission accumulation   (3 x 22 x avg_len) # accumalation matrix for emissions at each obs in avg_len
-            transition accumulation (3 x 3 x avg_len)  # accumalation matrix for transitions at each obs in avg_len
-
+        while not converged do
             for seq in input sequences do
                 let gamma be the posterior probability from forward/backward
                 let p_seq be the sum of the last column of forward
-                gamma = fwd + bwd - p_seq
+
                 add gamma column [0] to initial accumulation
 
-                for index in seq range of (avg_len) do
-                    # adjust the emissin matrix associtate with current index and current seq
-                    add gamma column [index] to emission accumulation [index] 
+                for index in seq do
+                    add gamma column [index] to emission accumulation [index]
 
-                    if index < avg_len - 1 do # -1 to avoid index error
+                    if index < avg_len - 1 do
                         add to trans accumulation:
                             forward [index] *
                             transitions [index] *
@@ -88,41 +126,11 @@ class profile-HMM
                             backward [index + 1] /
                             p_seq #to normalize
 
-
         normalize accumulations by the sum of accumulated probabilities
-        check convergence  
+        check convergence
         reassign matrices for next iteration
-
-
-# MSA
- 
-for seq in sequences
-    initiliaze a sequence matrix [no of seq x avg_len] # empty matrix
-    fill the sequence one by one (row by row)
-
- function assign consensus states to columns in sequence matrix
-    consensus states = empty list
-    set the gap threshold 0.5 
-
-    for each column j in sequence matrix
-        get all residues in column j across sequences
-        count the number of gaps '-' in column j
-        gap percentage = no of gap / total rows in column j 
-
-        if gap percentage < gap threshold
-            append M to consensus states list # Match column
-        else
-            append I to consesus states list # Insertion column
-
-return consensus states
-
-
-            
-            
-        
-
-
-
+                       
+```
 
 ## MSA initialisation
 
