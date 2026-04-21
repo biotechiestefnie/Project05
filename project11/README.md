@@ -8,25 +8,7 @@ What distinguishes our profile HMM from the regular HMM is A) the use of matrice
 
 # Pseudocode
 
-
-## Baum-Welch + fwd + bwd
-```python
-
-class profile-HMM
-    N is the number of states (1 = Match, 2 = Insert, 3 = Delete)
-    L is the max sequence length
-
-    let vocab be the 20 amino acids and "-" and "Z" and "Not" (nothing)   #assuming Z is the non-existing amino acid
-    let transitions be a stack of all transition probabilities          #dim: N x N x L
-    let emissions matrix be a stack of all emission probabilities       #dim: N x vocab x L
-
-    #Emission matrix example:
-    M  0.1  0.23...
-    I  0.5, 0.25...
-    D  0    0...       1.0
-        P    R    Y    
-
-    let avg_len be the average length of the input sequences # normailzing the column len of the matrix : avg len = sum of seq leq / total no of seqs
+## MSA initialization
 
 Function: MSA alignment
 Description: Construct Match, Insert, and Delete states from a multiple sequence alignment.
@@ -71,7 +53,24 @@ Description: Construct Match, Insert, and Delete states from a multiple sequence
 
 7.	Return the full Profile HMM structure.
 
+## Baum-Welch + fwd + bwd
+```python
 
+class profile-HMM
+    N is the number of states (1 = Match, 2 = Insert, 3 = Delete)
+    L is the max sequence length
+
+    let vocab be the 20 amino acids and "-" and "Z"                     #assuming Z is the non-existing amino acid
+    let transitions be a stack of all transition probabilities          #dim: N x N x L
+    let emissions matrix be a stack of all emission probabilities       #dim: N x vocab x L
+
+    #Emission matrix example:
+    M  0.1  0.23...
+    I  0.5, 0.25...
+    D  0    0...       1.0
+        P    R    Y    
+
+    let avg_len be the average length of the input sequences # normailzing the column len of the matrix : avg len = sum of seq leq / total no of seqs
 
 
     function _forward_table
@@ -154,6 +153,8 @@ This project was a lot to cram into 6 days relative to the previous projects. I 
 An unintuitve aspect of MSA initialization is determining what we caleld the "consensus states" based upon the observations. It seems that by defaulting to match for most indices, where the majority of emissions are not gap, the model is liable to commit type II errors where we should actually reject a match state. We questioned why MSA and Baum-Welch co-exist and have come to the conclusion that this is probably why. MSA provides a good-enough set of initial probabilities but they're probably biased towards match states, which fwd-bwd would register as less probable. It would be interesting to test this hypothesis by examining the proportion of match states assigned over time given MSA initialization for longer sequences.
 
 ## Thu Thu Han
+
+This week's project was definitely a learning curve for me and honestly even till now I am not satisfied with my understanding of profile HMMs. Putting Baum Welch, Viterbi, forward and backward together to get a profile HMM within one week was quite a lot of work even though I understand the concepts individually it was challenging to work with them in the process of building profile HMM which made me question my understanding in the first place. I think while our decision to work with matrices two weeks ago did turn out to be in our favor this week, keeping in track of indexes were quite challenging. I think I also filled in my understanding gaps in Balum welch from last week while brain storming on this project. While MSA was a simpler algorithm compared to Balum welch, one of the most challenging aspects was also trying to put the two algorithms together for profile HMM. I am also glad this week we only have to pseudocode and not actually implement them because I believe that would take longer than just one week to complete for me
 
 ## Stefanie Moreno
 
