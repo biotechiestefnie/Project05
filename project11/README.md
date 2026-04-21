@@ -143,8 +143,6 @@ class profile-HMM
         reassign matrices for next iteration
 
 
-```python
-    
 ```
 
 # Reflections
